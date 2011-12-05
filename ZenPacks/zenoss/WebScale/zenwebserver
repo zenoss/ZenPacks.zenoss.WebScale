@@ -1,0 +1,629 @@
+#!/usr/bin/env bash
+
+NGINX="${ZENHOME}/bin/nginx -c ${ZENHOME}/etc/nginx.conf"
+ZOPECTL=${ZENHOME}/bin/zopectl
+ZOPECONF=${ZENHOME}/etc/zope.conf
+ZOPECONFDIR=${ZENHOME}/etc/zope
+NGINXCONF=${ZENHOME}/etc/nginx-zope.conf
+NGINXPIDFILE=${ZENHOME}/var/nginx.pid
+
+# Number of Zopes beyond which confirmation is required
+MAXPOOLSIZE=30
+
+# Base port on which all Zopes will be based (usually 8080)
+BASEPORT=$(grep -e '^[ \t]*address[ \t]\{1,\}[0-9]\{1,\}[ \t]*$' ${ZOPECONF} | awk '{print $2}')
+
+RED=$(tput setaf 1)
+GREEN=$(tput setaf 2)
+NORMAL=$(tput sgr0)
+
+VERBOSE=
+is_verbose () {
+    [ -n "${VERBOSE}" ]
+    return $?
+}
+
+log_verbose () {
+    is_verbose && echo "$@"
+}
+
+log_terse () {
+    is_verbose || echo "$@"
+}
+
+dontusenginx () {
+    [ -n "${NO_ZENOSS_NGINX}" ]
+    return $?
+}
+
+contains () {
+    MEMBER="$1"
+    shift
+    GROUP="$@"
+    # Bash regex doesn't work with word boundaries, so use grep
+    echo "${GROUP}" | grep -i "\<${MEMBER}\>" > /dev/null 2>&1
+    return $?
+}
+
+confirm () {
+    echo -n "$@ [y/N]? "
+    read -e ANSWER
+    for RESPONSE in y Y yes YES Yes ok OK Ok; do
+        [ $ANSWER == $RESPONSE ] && return 0
+    done
+    return 1
+}
+
+#seq () {
+#    FIRST=$1
+#    SECOND=$2
+#    [ -z "${SECOND}" ] && SECOND=${FIRST} && FIRST=1
+#    for ((i=${FIRST};i<=${SECOND};i++)); do
+#        echo $i
+#    done
+#}
+
+red () {
+    is_verbose && echo "[${RED}$1${NORMAL}]"
+}
+
+green () {
+    is_verbose && echo "[${GREEN}$1${NORMAL}]"
+}
+
+ok () { 
+    green OK
+}
+
+up () { 
+    green UP
+}
+
+fail () { 
+    red FAIL
+}
+
+down () { 
+    red DOWN
+}
+
+quit () {
+    echo "$@"
+    exit 1
+}
+
+printmsg () {
+    is_verbose && printf '%-50s' "$@"
+}
+
+execwithmsg_terse () {
+    OLDVERBOSE=${VERBOSE}
+    VERBOSE=1
+    execwithmsg "$@"
+    VERBOSE=${OLDVERBOSE}
+}
+
+execwithmsg () {
+    MYMSG=$1
+    shift
+    is_verbose && printmsg "${MYMSG}"
+    "$@" > /dev/null 2>&1 && ok || fail
+}
+
+execwithmsg_verbose () {
+    MYMSG=$1
+    shift
+    is_verbose && printmsg "${MYMSG}"
+    RESULT="$($@ 2>&1)"
+    RETCODE=$?
+    [ ${RETCODE} ] && ok || fail
+    [ -n "${RESULT}" ] && echo "${RESULT}"
+    return ${RETCODE}
+}
+
+addtonginx () {
+    PORT=$1
+    CONFSTR="server 127.0.0.1:${PORT};"
+    grep -i "^[ \t]*${CONFSTR}$" "${NGINXCONF}" > /dev/null || sed -i -e "/^}$/i \\
+        \ \ \ \ ${CONFSTR}\\
+    " "${NGINXCONF}"
+}
+
+numzopes () {
+    echo $(ls ${ZOPECONFDIR}/zope*.conf | wc -l || echo 0)
+}
+
+allzopes () {
+    echo $(ls ${ZOPECONFDIR}/zope*.conf | sed 's/^.*zope//g;s/\.conf//g')
+}
+
+configfile () {
+    NUM=$1
+    echo ${ZOPECONFDIR}/zope${NUM}.conf
+}
+
+zopeexec () {
+    NUM=$1
+    MSG=$2
+    shift
+    shift
+    export CONFIG_FILE="${ZOPECONFDIR}/zope${NUM}.conf"
+    execwithmsg "${MSG} Server ${NUM}" "${ZOPECTL}" "$@"
+    unset CONFIG_FILE
+}
+
+removefromnginx () {
+    PORT=$1
+    CONFSTR="server 127.0.0.1:${PORT};"
+    sed -i -e "/${CONFSTR}/d" "${NGINXCONF}"
+}
+
+writeconfigfile () {
+    NUM="$1"
+    FILENAME="${ZOPECONFDIR}/zope${NUM}.conf"
+    PORTBASE=$(expr 1000 + ${NUM})
+    VARDIR="${ZENHOME}/var/zope${NUM}"
+
+    if [ ! -f "${FILENAME}" ]; then
+        # Make sure directories are created
+        VARDIR="${ZENHOME}/var/zope${NUM}"
+        mkdir -p ${VARDIR}
+
+        # Write the config file
+        cat 2>/dev/null > ${FILENAME} <<EOF
+%include ${ZENHOME}/etc/zope.conf
+clienthome ${VARDIR}
+port-base ${PORTBASE}
+EOF
+        RESULT=$?
+        execwithmsg "Deploying Server ${NUM} configuration" test ${RESULT} == 0
+        return ${RESULT}
+    fi
+}
+
+# Create a config file representing a Zope instance
+createconf () {
+    NUM=$1
+    FILENAME="${ZOPECONFDIR}/zope${NUM}.conf"
+    PORTBASE=$(expr 1000 + ${NUM})
+    dontusenginx || $(nginxstatus > /dev/null 2>&1) && NGINXRUNNING=1
+    if [ ! -f "${FILENAME}" ]; then
+        writeconfigfile ${NUM}
+        [ $? != 0 ] && return $?
+
+        # Update nginx conf
+        PORT=$(expr ${PORTBASE} + ${BASEPORT})
+        if $(dontusenginx); then
+            # Still keep config up to date, but don't talk about it
+            addtonginx ${PORT}
+        else
+            execwithmsg "Attaching Server ${NUM} to server pool" addtonginx ${PORT}
+        fi
+
+        # Start Zope
+        if $(dontusenginx) || [ -n ${NGINXRUNNING} ]; then 
+            zopeexec ${NUM} Starting start
+            sleep 1
+            zopestatus ${FILENAME}
+        fi
+
+    else
+        # Already deployed
+        printmsg "Server ${NUM} already deployed" && ok
+        zopestatus ${FILENAME}
+    fi
+    echo
+}
+
+portfromnum () {
+    NUM=$1
+    PORTBASE="$(expr 1000 + ${NUM})"
+    PORT="$(expr ${PORTBASE} + ${BASEPORT})"
+    echo ${PORT}
+}
+
+portfrompid() {
+    case "$(uname)" in
+        Darwin )
+            echo $(lsof -P -a -p ${PID} -iTCP -sTCP:LISTEN | tail -n 1 | awk '{print $9}')
+            ;;
+        Linux )
+            echo $(netstat -alnp | grep ${PID} | grep LISTEN | awk '{print $4}' | sed 's/0.0.0.0/*/')
+            ;;
+    esac
+}
+
+
+removeconf () {
+    PORT=$(portfromnum $1)
+    FILENAME="${ZOPECONFDIR}/zope${NUM}.conf"
+    VARDIR="${ZENHOME}/var/zope${NUM}"
+
+    # Shut down Zope
+    zopestatus ${FILENAME} > /dev/null 2>&1 && zopeexec ${NUM} Stopping stop
+
+    # Clean up config
+    execwithmsg "Removing Server ${NUM} instance" rm -rf ${VARDIR} ${FILENAME}
+
+    # Unregister from nginx
+    if $(dontusenginx); then
+        # Still keep config up to date, but don't talk about it
+        removefromnginx ${PORT}
+    else
+        if $(detached ${NUM}); then
+            printmsg "Already detached from server pool" && ok
+        else
+            execwithmsg "Detaching Server ${NUM} from server pool" removefromnginx ${PORT}
+        fi
+    fi
+}
+
+foreground () {
+    if [ -z "$@" ]; then
+        ${ZOPECTL} fg
+    else
+        TARGETS=$(targets "$@")
+        for TARGET in ${TARGETS}; do
+            if [ ${TARGET} != 'nginx' ]; then
+                export CONFIG_FILE=$(configfile ${TARGET})
+                ${ZOPECTL} fg
+                unset CONFIG_FILE
+                # First one only
+                return
+            fi
+        done
+    fi
+}
+
+start () {
+    log_terse starting...
+
+    # If there are no Zopes yet (i.e., just installed), deploy two
+    if [ -z "$(ls $ZOPECONFDIR/*.conf 2>/dev/null)" ]; then
+        createconf 1
+        createconf 2
+        ALREADYSTARTED=1
+    fi
+
+    TARGETS=$(targets "$@")
+
+    for TARGET in ${TARGETS}; do
+        if [ ${TARGET} == 'nginx' ]; then
+            # Start nginx
+            if $(nginxstatus > /dev/null 2>&1); then
+                log_terse "already running"
+                printmsg "Load balancer already running" && ok
+            else
+                execwithmsg_verbose "Starting load balancer" ${NGINX}
+            fi
+            nginxstatus
+            is_verbose && echo
+        elif [ -z "${ALREADYSTARTED}" ]; then
+            NUM=${TARGET}
+            CONFIG=$(configfile ${NUM})
+            if $(zopestatus ${CONFIG} > /dev/null 2>&1); then
+                printmsg "Server ${NUM} already running" && ok
+            else
+                zopeexec ${NUM} "Starting" start
+                sleep 1
+            fi
+            zopestatus ${CONFIG}
+            is_verbose && echo
+        fi
+    done
+}
+
+stop () {
+    log_terse stopping...
+    TARGETS=$(targets "$@")
+    for TARGET in ${TARGETS}; do
+        if [ ${TARGET} == 'nginx' ]; then
+            # Shut down nginx
+            if $(nginxstatus > /dev/null 2>&1); then
+                execwithmsg "Stopping load balancer" ${NGINX} -s stop
+            else
+                log_terse "already stopped"
+                printmsg "Load balancer already stopped" && ok
+            fi
+        else
+            NUM="${TARGET}"
+            CONFIG="$(configfile ${NUM})"
+            if $(zopestatus "${CONFIG}" > /dev/null 2>&1); then
+                zopeexec ${NUM} "Stopping" stop
+            else
+                printmsg "Server ${NUM} already stopped" && ok
+            fi
+        fi
+    done
+}
+
+addnodupes () {
+    TOADD=$1
+    shift
+    ARRAY=$@
+    contains "${TOADD}" "${ARRAY}" && echo "${ARRAY}" || echo "${ARRAY} ${TOADD}"
+}
+
+targets () {
+    TARGETS="$@"
+    ALLZOPES=$(allzopes)
+    if [ -z "${TARGETS}" ]; then
+        RESULTS="nginx ${ALLZOPES}"
+    else
+        for TARGET in ${TARGETS}; do
+            if [ "${TARGET}" == "nginx" -o "${TARGET}" == "loadbalancer" ]; then 
+                RESULTS=$(addnodupes nginx ${RESULTS})
+
+            elif [ "${TARGET}" == "servers" ]; then
+                for NUM in ${ALLZOPES}; do
+                    RESULTS=$(addnodupes ${NUM} ${RESULTS})
+                done
+
+            elif [[ "${TARGET}" =~ (server)?[0-9]{1,} ]]; then
+                NUM=$(echo ${TARGET} | sed 's/server//g')
+                # Make sure the number is valid
+                contains ${NUM} ${ALLZOPES} && RESULTS=$(addnodupes ${NUM} ${RESULTS})
+            fi
+        done
+    fi
+
+    # Remove nginx from targets if we aren't using it
+    dontusenginx && RESULTS=$(echo "${RESULTS}" | sed 's/nginx//g')
+
+    echo ${RESULTS}
+}
+
+restart () {
+    TARGETS=$(targets "$@")
+    for TARGET in ${TARGETS}; do
+        if [ ${TARGET} == 'nginx' ]; then
+            # Restart nginx
+            if $(nginxstatus > /dev/null 2>&1); then
+                execwithmsg "Stopping load balancer" ${NGINX} -s stop
+            else
+                printmsg "Load balancer already stopped" && ok
+            fi
+            execwithmsg_verbose "Starting load balancer" ${NGINX}
+            nginxstatus
+            echo
+        else
+            # Restart Zopes
+            NUM=${TARGET}
+            CONFIG="$(configfile ${NUM})"
+            if $(zopestatus ${CONFIG} > /dev/null 2>&1); then
+                zopeexec ${NUM} "Stopping" stop
+            else
+                printmsg "Server ${NUM} already stopped" && ok
+            fi
+            zopeexec ${NUM} "Starting" start
+            zopestatus ${CONFIG}
+            echo
+        fi
+    done
+}
+
+reload () {
+    dontusenginx || execwithmsg_verbose "Reloading load balancer config" ${NGINX} -s reload
+}
+
+deploy () {
+    mkdir -p ${ZOPECONFDIR}
+
+    # Determine the total number of Zopes we should end up with
+    TOTALZOPES=$(ls ${ZOPECONFDIR} | wc -l)
+    NEWTOTAL=$1
+    [[ "${NEWTOTAL}" =~ ^[-+] ]] && NEWTOTAL=$(expr $TOTALZOPES $(echo ${NEWTOTAL} | sed 's/[-+]/& /g'))
+
+    # Throw out invalid numbers
+    [[ "${NEWTOTAL}" =~ ^-{0,1}[0-9]{1,}$ ]] || quit ${NEWTOTAL} is an invalid number to deploy.  Examples: 5, +2, -3.
+
+    # Minimum of 1 Zope
+    [ "${NEWTOTAL}" -lt 1 ] && NEWTOTAL=1
+
+    # Add or remove configs
+    DIFFERENCE=$(expr ${NEWTOTAL} - ${TOTALZOPES})
+    if [ "${DIFFERENCE}" -lt 0 ]; then
+        for NUM in $(seq ${TOTALZOPES} $(expr ${NEWTOTAL} + 1)); do 
+            removeconf ${NUM}
+            RELOAD=1
+            echo
+        done
+        for NUM in $(seq ${NEWTOTAL}); do
+            zopestatus $(configfile ${NUM})
+            echo
+        done
+    elif [ "${DIFFERENCE}" -gt 0 ]; then
+        if [ "${NEWTOTAL}" -gt "${MAXPOOLSIZE}" ]; then
+            echo $(red Warning): this will exceed your maximum server pool size by $(expr ${NEWTOTAL} - ${MAXPOOLSIZE})
+            confirm Deploy ${DIFFERENCE} additional servers || quit
+        fi
+        for NUM in $(seq ${NEWTOTAL}); do
+            createconf ${NUM}
+            RELOAD=1
+            sleep 1
+        done
+    else
+        echo "Nothing to do: already configured to run ${NEWTOTAL} servers."
+        status
+    fi
+
+    # Reload nginx (or not)
+    if [ -n "${RELOAD}" ]; then
+        if $(dontusenginx); then
+            echo "Please reconfigure your load balancer."
+        else
+            nginxstatus > /dev/null 2>&1 && reload || echo "Load balancer not running, so not reloading config"
+        fi
+    fi
+}
+
+detached () {
+    PORT=$(portfromnum $1)
+    grep "server 127.0.0.1:${PORT};" ${NGINXCONF} > /dev/null 2>&1 && DETACHED=1 || DETACHED=0
+    return ${DETACHED}
+}
+
+attach () {
+    [ -z "$@" ] && quit "No specification of servers to attach. Examples: server2, 5"
+    TARGETS=$(targets "$@")
+    for TARGET in ${TARGETS}; do
+        if [ "${TARGET}" == "nginx" ]; then
+            continue
+        fi
+        if $(detached ${TARGET}); then
+            execwithmsg "Attaching Server ${TARGET} to server pool" addtonginx $(portfromnum ${TARGET}) && reload
+        else
+            printmsg "Server ${TARGET} already attached to server pool" && ok
+        fi
+        # First one only
+        return
+    done
+}
+
+detach () {
+    [ -z "$@" ] && quit "No specification of servers to detach. Examples: server2, 3"
+    TARGETS=$(targets "$@")
+    for TARGET in ${TARGETS}; do
+        if [ "${TARGET}" == "nginx" ]; then
+            continue
+        fi
+        if $(detached ${TARGET}); then
+            printmsg "Server ${TARGET} already detached from server pool" && ok
+        else
+            execwithmsg "Detaching Server ${TARGET} from server pool" removefromnginx $(portfromnum ${TARGET}) && reload
+        fi
+        # First one only
+        return
+    done
+}
+
+debug () {
+    SERVERNUM=$(expr ${MAXPOOLSIZE} + 1)
+    while $(contains ${SERVERNUM} $(allzopes)); do
+        SERVERNUM=$(expr ${SERVERNUM} + 1)
+    done
+    writeconfigfile ${SERVERNUM}
+    foreground ${SERVERNUM}
+    removeconf ${SERVERNUM}
+}
+
+printstatus () {
+    PIDFILE=$1
+    STATUS=1
+    PROGSTATUS="Not running"
+    PORTSTATUS="Not listening"
+    if [ -f ${PIDFILE} ]; then
+        PID=$(cat ${PIDFILE})
+        ps -p ${PID} > /dev/null 2>&1 && PROGSTATUS="Running (pid ${PID})"
+        PORT=$(portfrompid ${PID} 2>/dev/null)
+        if [ -n "${PORT}" ]; then
+            STATUS=0
+            PORTSTATUS="Listening (port ${PORT})"
+        fi
+    fi
+    [ ${STATUS} == 0 ] && up || down
+    log_verbose ${PROGSTATUS}, ${PORTSTATUS}
+    return $STATUS
+}
+
+zopestatus () {
+    CONFIGFILE=$1
+    ZOPENAME="$(basename ${CONFIGFILE} .conf)"
+    NUM=${ZOPENAME:4}
+    printmsg "Server ${NUM} status"
+    printstatus "${ZENHOME}/var/${ZOPENAME}/Z2.pid"
+    RESULT=$?
+    dontusenginx || detached ${NUM} && echo "* Detached from server pool"
+    return ${RESULT}
+}
+
+nginxstatus () {
+    printmsg "Load balancer status"
+    printstatus ${NGINXPIDFILE}
+}
+
+status () {
+    if [ -z ${VERBOSE} ]; then
+        dontusenginx || (nginxstatus >/dev/null 2>&1) \
+            && echo "program running; pid=$(cat ${NGINXPIDFILE})" \
+            || echo "not running"
+    else
+        for FNAME in $(ls $ZOPECONFDIR/*.conf); do
+            zopestatus ${FNAME}
+            is_verbose && echo
+        done
+        dontusenginx || nginxstatus && is_verbose && echo
+    fi
+}
+
+help () {
+    RELOAD=$(dontusenginx || echo "|reload|attach|detach")
+    echo "Usage: $0 {run|start|stop|restart|status|deploy${RELOAD}|debug|help} [-v] [targets]"
+}
+
+
+parse () {
+    ACTION=$1
+    shift
+    case "${ACTION}" in
+      fg)
+        foreground "$@"
+        ;;
+      run)
+        foreground "$@"
+        ;;
+      start)
+        start "$@"
+        ;;
+      stop)
+        stop "$@"
+        ;;
+      restart)
+        VERBOSE=1 # No terse mode necessary
+        restart "$@"
+        ;;
+      reload)
+        VERBOSE=1 # No terse mode possible
+        reload
+        ;;
+      deploy)
+        VERBOSE=1 # No terse mode necessary
+        deploy "$@"
+        ;;
+      attach)
+        VERBOSE=1 # No terse mode possible
+        attach "$@"
+        ;;
+      detach)
+        VERBOSE=1 # No terse mode possible
+        detach "$@"
+        ;;
+      debug)
+        VERBOSE=1 # No terse mode necessary
+        debug "$@"
+        ;;
+      status)
+        status
+        ;;
+      help)
+        help
+        ;;
+      *)
+        help
+        exit 1
+        ;;
+    esac
+}
+
+# Half-assed getopts, but we really don't need it here
+ARGS=
+for arg in $@; do
+    if [ "$arg" == "-v" ]; then
+        VERBOSE=1
+    else
+        ARGS="${ARGS} ${arg}"
+    fi
+done
+
+parse $ARGS
+exit $?
