@@ -54,14 +54,20 @@ confirm () {
     return 1
 }
 
-#seq () {
-#    FIRST=$1
-#    SECOND=$2
-#    [ -z "${SECOND}" ] && SECOND=${FIRST} && FIRST=1
-#    for ((i=${FIRST};i<=${SECOND};i++)); do
-#        echo $i
-#    done
-#}
+seq () {
+    FIRST=$1
+    SECOND=$2
+    [ -z "${SECOND}" ] && SECOND=${FIRST} && FIRST=1
+    if [ ${SECOND} -lt ${FIRST} ]; then
+        for ((i=${FIRST};i>=${SECOND};i--)); do
+            echo $i
+        done
+    else
+        for ((i=${FIRST};i<=${SECOND};i++)); do
+            echo $i
+        done
+    fi
+}
 
 red () {
     is_verbose && echo "[${RED}$1${NORMAL}]"
