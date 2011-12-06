@@ -302,7 +302,6 @@ start () {
             else
                 execwithmsg_verbose "Starting load balancer" ${NGINX}
             fi
-            nginxstatus
             is_verbose && echo
         elif [ -z "${ALREADYSTARTED}" ]; then
             NUM=${TARGET}
@@ -313,7 +312,6 @@ start () {
                 zopeexec ${NUM} "Starting" start
                 sleep 1
             fi
-            zopestatus ${CONFIG}
             is_verbose && echo
         fi
     done
@@ -390,7 +388,6 @@ restart () {
                 printmsg "Load balancer already stopped" && ok
             fi
             execwithmsg_verbose "Starting load balancer" ${NGINX}
-            nginxstatus
             echo
         else
             # Restart Zopes
@@ -402,7 +399,6 @@ restart () {
                 printmsg "Server ${NUM} already stopped" && ok
             fi
             zopeexec ${NUM} "Starting" start
-            zopestatus ${CONFIG}
             echo
         fi
     done
