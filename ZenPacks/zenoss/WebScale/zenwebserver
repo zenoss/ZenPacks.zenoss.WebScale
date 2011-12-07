@@ -229,12 +229,13 @@ portfromnum () {
 }
 
 portfrompid() {
+    PID=$1
     case "$(uname)" in
         Darwin )
             echo $(lsof -P -a -p ${PID} -iTCP -sTCP:LISTEN | tail -n 1 | awk '{print $9}')
             ;;
         Linux )
-            echo $(netstat -alnp | grep ${PID} | grep LISTEN | awk '{print $4}' | sed 's/0.0.0.0/*/')
+            echo $(netstat -talnp 2>/dev/null | grep LISTEN | grep " ${PID}/" | awk '{print $4}' | sed 's/0.0.0.0/*/')
             ;;
     esac
 }
@@ -539,9 +540,32 @@ zopestatus () {
     return ${RESULT}
 }
 
+getchildpids () {
+    PARENTPID=$1
+    ps ax -o ppid,pid | grep -i "^ *${PARENTPID} " | awk {'print $2'}
+}
+
 nginxstatus () {
     printmsg "Load balancer status"
-    printstatus ${NGINXPIDFILE}
+    PROGSTATUS="Not running"
+    PORTSTATUS="Not listening"
+    STATUS=1
+    if [ -f ${NGINXPIDFILE} ]; then
+        PID=$(cat ${NGINXPIDFILE})
+        ps -p ${PID} > /dev/null 2>&1 && PROGSTATUS="Running (pid ${PID})"
+        # Any of the worker processes could be listening
+        for pid in ${PID} $(getchildpids ${PID}); do
+            PORT=$(portfrompid ${pid})
+            if [ -n "${PORT}" ]; then
+                STATUS=0
+                PORTSTATUS="Listening (port ${PORT})"
+                break
+            fi
+        done
+    fi
+    [ ${STATUS} == 0 ] && up || down
+    log_verbose ${PROGSTATUS}, ${PORTSTATUS}
+    return ${STATUS}
 }
 
 status () {
