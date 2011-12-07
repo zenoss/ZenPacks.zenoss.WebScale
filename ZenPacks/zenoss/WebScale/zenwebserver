@@ -210,7 +210,6 @@ createconf () {
         if $(dontusenginx) || [ -n ${NGINXRUNNING} ]; then 
             zopeexec ${NUM} Starting start
             sleep 1
-            zopestatus ${FILENAME}
         fi
 
     else
