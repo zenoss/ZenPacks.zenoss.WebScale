@@ -77,19 +77,19 @@ green () {
     is_verbose && echo "[${GREEN}$1${NORMAL}]"
 }
 
-ok () { 
+ok () {
     green OK
 }
 
-up () { 
+up () {
     green UP
 }
 
-fail () { 
+fail () {
     red FAIL
 }
 
-down () { 
+down () {
     red DOWN
 }
 
@@ -100,6 +100,13 @@ quit () {
 
 printmsg () {
     is_verbose && printf '%-50s' "$@"
+}
+
+clearcache () {
+    # clear the nginx cache every time nginx is restarted
+    if [ -d "${ZENHOME}/var/nginx-cache" ]; then
+        rm -rf $ZENHOME/var/nginx-cache
+    fi
 }
 
 execwithmsg_terse () {
@@ -207,7 +214,7 @@ createconf () {
         fi
 
         # Start Zope
-        if $(dontusenginx) || [ -n ${NGINXRUNNING} ]; then 
+        if $(dontusenginx) || [ -n ${NGINXRUNNING} ]; then
             zopeexec ${NUM} Starting start
             sleep 1
         fi
@@ -300,6 +307,7 @@ start () {
                 log_terse "already running"
                 printmsg "Load balancer already running" && ok
             else
+                clearcache
                 execwithmsg_verbose "Starting load balancer" ${NGINX}
             fi
             is_verbose && echo
@@ -355,7 +363,7 @@ targets () {
         RESULTS="nginx ${ALLZOPES}"
     else
         for TARGET in ${TARGETS}; do
-            if [ "${TARGET}" == "nginx" -o "${TARGET}" == "loadbalancer" ]; then 
+            if [ "${TARGET}" == "nginx" -o "${TARGET}" == "loadbalancer" ]; then
                 RESULTS=$(addnodupes nginx ${RESULTS})
 
             elif [ "${TARGET}" == "servers" ]; then
@@ -387,6 +395,7 @@ restart () {
             else
                 printmsg "Load balancer already stopped" && ok
             fi
+            clearcache
             execwithmsg_verbose "Starting load balancer" ${NGINX}
             echo
         else
@@ -425,7 +434,7 @@ deploy () {
     # Add or remove configs
     DIFFERENCE=$(expr ${NEWTOTAL} - ${TOTALZOPES})
     if [ "${DIFFERENCE}" -lt 0 ]; then
-        for NUM in $(seq ${TOTALZOPES} $(expr ${NEWTOTAL} + 1)); do 
+        for NUM in $(seq ${TOTALZOPES} $(expr ${NEWTOTAL} + 1)); do
             removeconf ${NUM}
             RELOAD=1
             echo
