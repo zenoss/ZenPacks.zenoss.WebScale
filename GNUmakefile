@@ -6,7 +6,7 @@
 
 #==================================
 NGINXVERSION=1.0.10
-UPSTREAMFAIRVERSION=7171df84c5
+UPSTREAMFAIRVERSION=5f6a3b720e1cfbb9ef0258a543bf5d9f63915e20
 #==================================
 
 HERE=$(PWD)
