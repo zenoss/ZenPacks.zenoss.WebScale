@@ -143,11 +143,11 @@ addtonginx () {
 }
 
 numzopes () {
-    echo $(ls ${ZOPECONFDIR}/zope*.conf | wc -l || echo 0)
+    echo $(ls ${ZOPECONFDIR}/zope*.conf 2>/dev/null | wc -l || echo 0)
 }
 
 allzopes () {
-    echo $(ls ${ZOPECONFDIR}/zope*.conf | sed 's/^.*zope//g;s/\.conf//g')
+    echo $(ls ${ZOPECONFDIR}/zope*.conf 2>/dev/null | sed 's/^.*zope//g;s/\.conf//g')
 }
 
 configfile () {
@@ -224,7 +224,6 @@ createconf () {
         printmsg "Server ${NUM} already deployed" && ok
         zopestatus ${FILENAME}
     fi
-    echo
 }
 
 portfromnum () {
