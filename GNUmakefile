@@ -42,13 +42,21 @@ $(BINDIR)/nginx: $(BINDIR)/.d $(PREFIXDIR)/.d $(UPSTREAMFAIRDIR)/.d $(NGINXDIR)/
 	@cd $(NGINXDIR) && \
 		./configure \
        		--prefix=$(PREFIXDIR) \
+			--builddir=$(BUILDDIR) \
 			--sbin-path=$(BINDIR)/nginx \
 			--http-client-body-temp-path=$(PREFIXDIR)/var/nginx_temp \
+			--http-log-path=$(PREFIXDIR)/log/nginx/access.log \
 			--error-log-path=$(PREFIXDIR)/log/nginx/error.log \
 			--with-http_ssl_module \
 			--with-http_stub_status_module \
+			--without-http_uwsgi_module \
+			--without-http_scgi_module \
+			--without-http_fastcgi_module \
 			--add-module=$(UPSTREAMFAIRDIR) \
 		&& make && make install 
+	@echo "Cleaning up..."
+	@rm -rf $(PREFIXDIR)/conf $(PREFIXDIR)/logs
+
 
 build: $(BINDIR)/nginx
 

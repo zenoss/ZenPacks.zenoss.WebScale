@@ -1,3 +1,23 @@
+#####################################################################################
+#  SSL Configuration for zenwebserver
+#
+#  Instructions:
+#
+#  1. Put your certificate and key files in $ZENHOME/etc/ssl, named zenoss.crt
+#     and zenoss.key (or change the names/paths below)
+#
+#  2. sudo chmod 04750 `readlink $ZENHOME/bin/nginx`
+#     sudo chown root:zenoss `readlink $ZENHOME/bin/nginx`
+#
+#  3. mv $ZENHOME/etc/nginx.conf{,.bak}
+#     mv $ZENHOME/etc/nginx.conf{.ssl,}
+#
+#  4. zenwebserver restart
+#
+#####################################################################################
+
+user zenoss zenoss;
+
 worker_processes  4;
 pid <<INSTANCE_HOME>>/var/nginx.pid;
 error_log <<INSTANCE_HOME>>/log/nginx/error.log info;
@@ -29,11 +49,25 @@ http {
     include <<INSTANCE_HOME>>/etc/nginx-zope.conf;
 
     server {
+        listen 80;
+        rewrite ^(.*)$ https://$host:443$1 break;
+    }
+
+    server {
         listen <<PORT>>;
+        rewrite ^(.*)$ https://$host:443$1 break;
+    }
+
+    server {
+        listen 443;
         access_log <<INSTANCE_HOME>>/log/nginx/access.log;
+        ssl on;
+        # Here's where you change the names/paths of your certificate files
+        ssl_certificate <<INSTANCE_HOME>>/etc/ssl/zenoss.crt;
+        ssl_certificate_key <<INSTANCE_HOME>>/etc/ssl/zenoss.key;
 
         location / {
-            rewrite ^(.*)$ /VirtualHostBase/http/$host:<<PORT>>$1 break;
+            rewrite ^(.*)$ /VirtualHostBase/https/$host:443$1 break;
             proxy_pass http://zopectls;
             proxy_set_header Host $http_host;
             proxy_set_header X-Real-IP $remote_addr ;

@@ -114,8 +114,14 @@ class ZenPack(ZenPackBase):
 
         port = get_port()
         log.info("Detected Zope is using port %s" % port)
-        # Replace strings in nginx.conf
+
+        # Replace strings in nginx.conf and nginx.conf.ssl
         with open(self.path('nginx.conf'), 'r') as f, open(self.path('nginx.conf.tmp'), 'w') as f2:
+            f2.write(f.read()
+                     .replace('<<INSTANCE_HOME>>', zenPath())
+                     .replace('<<PORT>>', port))
+
+        with open(self.path('nginx.conf.ssl'), 'r') as f, open(self.path('nginx.conf.ssl.tmp'), 'w') as f2:
             f2.write(f.read()
                      .replace('<<INSTANCE_HOME>>', zenPath())
                      .replace('<<PORT>>', port))
@@ -125,6 +131,7 @@ class ZenPack(ZenPackBase):
 
         # Copy in nginx configs
         self._copy(('nginx.conf.tmp',), ('etc', 'nginx.conf'))
+        self._copy(('nginx.conf.ssl.tmp',), ('etc', 'nginx.conf.ssl'))
         self._copy(('nginx-zope.conf',), ('etc', 'nginx-zope.conf'))
 
         # Clean up
