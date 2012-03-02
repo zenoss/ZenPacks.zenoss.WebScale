@@ -115,13 +115,9 @@ class ZenPack(ZenPackBase):
         port = get_port()
         log.info("Detected Zope is using port %s" % port)
 
-        # Replace strings in nginx.conf and nginx.conf.ssl
-        with open(self.path('nginx.conf'), 'r') as f, open(self.path('nginx.conf.tmp'), 'w') as f2:
-            f2.write(f.read()
-                     .replace('<<INSTANCE_HOME>>', zenPath())
-                     .replace('<<PORT>>', port))
 
-        with open(self.path('nginx.conf.ssl'), 'r') as f, open(self.path('nginx.conf.ssl.tmp'), 'w') as f2:
+        # Replace strings in zenwebserver.conf
+        with open(self.path('zenwebserver.conf'), 'r') as f, open(self.path('zenwebserver.conf.tmp'), 'w') as f2:
             f2.write(f.read()
                      .replace('<<INSTANCE_HOME>>', zenPath())
                      .replace('<<PORT>>', port))
@@ -129,13 +125,12 @@ class ZenPack(ZenPackBase):
         # Create mime.types symlink
         self._symlink(('mime.types',), ('etc', 'mime.types'))
 
-        # Copy in nginx configs
-        self._copy(('nginx.conf.tmp',), ('etc', 'nginx.conf'))
-        self._copy(('nginx.conf.ssl.tmp',), ('etc', 'nginx.conf.ssl'))
+        # Copy in nginx configs, does not replace existing configs
+        self._copy(('zenwebserver.conf.tmp',), ('etc', 'zenwebserver.conf'))
         self._copy(('nginx-zope.conf',), ('etc', 'nginx-zope.conf'))
 
         # Clean up
-        os.remove(self.path('nginx.conf.tmp'))
+        os.remove(self.path('zenwebserver.conf.tmp'))
 
         try:
             os.mkdir(zenPath('etc', 'zope'))
@@ -159,8 +154,8 @@ class ZenPack(ZenPackBase):
             log.info("Attempting to shut down running zopectl")
             subprocess.call([zenPath('bin', 'zopectl'), 'stop'])
             time.sleep(4) # Wait for it to shut down
-            log.info("Starting zenwebserver")
-            # subprocess.call([zenPath('bin', 'zenwebserver'), 'start'])
+            log.info("Configuring zenwebserver")
+            subprocess.call([zenPath('bin', 'zenwebserver'), 'configure'])
         log.info("Installed successfully. Run 'zenwebserver start' to start the UI server.")
 
 

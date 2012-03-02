@@ -1,18 +1,21 @@
+# TEMPLATE used for generating nginx.conf. Format is python string formatting http://docs.python.org/library/stdtypes.html#string-formatting
+{FILE_BEGIN}
+
 worker_processes  4;
-pid <<INSTANCE_HOME>>/var/nginx.pid;
-error_log <<INSTANCE_HOME>>/log/nginx/error.log info;
+pid {INSTANCE_HOME}/var/nginx.pid;
+error_log {INSTANCE_HOME}/log/nginx/error.log info;
 
-events {
+events {{
     worker_connections  1024;
-}
+}}
 
-http {
-    include       <<INSTANCE_HOME>>/etc/mime.types;
+http {{
+    include       {INSTANCE_HOME}/etc/mime.types;
     default_type  application/octet-stream;
 
-    proxy_cache_path  <<INSTANCE_HOME>>/var/nginx-cache levels=1:2 keys_zone=zenoss-cache:8m max_size=1000m inactive=600m;
-    proxy_temp_path <<INSTANCE_HOME>>/var/nginx-cache/tmp;
-    client_body_temp_path <<INSTANCE_HOME>>/var/nginx-cache/tmp;
+    proxy_cache_path  {INSTANCE_HOME}/var/nginx-cache levels=1:2 keys_zone=zenoss-cache:8m max_size=1000m inactive=600m;
+    proxy_temp_path {INSTANCE_HOME}/var/nginx-cache/tmp;
+    client_body_temp_path {INSTANCE_HOME}/var/nginx-cache/tmp;
 
     sendfile        on;
     tcp_nopush      on;
@@ -26,14 +29,18 @@ http {
     gzip_types text/css text/plain application/atom+xml application/x-javascript;
     gzip_disable "MSIE [1-6]\.(?!.*SV1)";
 
-    include <<INSTANCE_HOME>>/etc/nginx-zope.conf;
+    include {INSTANCE_HOME}/etc/nginx-zope.conf;
 
-    server {
-        listen <<PORT>>;
-        access_log <<INSTANCE_HOME>>/log/nginx/access.log;
+    {PRE_SERVERBLOCK}
 
-        location / {
-            rewrite ^(.*)$ /VirtualHostBase/http/$host:<<PORT>>$1 break;
+    server {{
+        listen {PORT};
+        access_log {INSTANCE_HOME}/log/nginx/access.log;
+
+        {SSL_CONFIG}
+
+        location / {{
+            rewrite ^(.*)$ /VirtualHostBase/{PROTOCOL}/$host:{PORT}$1 break;
             proxy_pass http://zopectls;
             proxy_set_header Host $http_host;
             proxy_set_header X-Real-IP $remote_addr ;
@@ -41,15 +48,15 @@ http {
             proxy_set_header  X-Url-Scheme $scheme;
             proxy_read_timeout 600s;
             client_max_body_size 500m;
-        }
-        location /nginx_status {
+        }}
+        location /nginx_status {{
             stub_status on;
             access_log off;
-        }
+        }}
 
-        include <<INSTANCE_HOME>>/etc/nginx-dc-*.conf;
+        include {INSTANCE_HOME}/etc/nginx-dc-*.conf;
 
-        location ~* \.(jpg|png|gif|jpeg|css|js|mp3|wav|swf|mov|doc|pdf|xls|ppt|docx|pptx|xlsx)$ {
+        location ~* \.(jpg|png|gif|jpeg|css|js|mp3|wav|swf|mov|doc|pdf|xls|ppt|docx|pptx|xlsx)$ {{
             proxy_pass http://zopectls;
             expires max;
             proxy_cache zenoss-cache;
@@ -59,7 +66,6 @@ http {
             proxy_set_header X-Real-IP $remote_addr ;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for ;
             proxy_set_header  X-Url-Scheme $scheme;
-        }
-    }
-
-}
+        }}
+    }}
+}}

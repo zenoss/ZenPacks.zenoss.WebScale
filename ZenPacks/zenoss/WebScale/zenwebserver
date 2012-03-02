@@ -589,9 +589,15 @@ status () {
     fi
 }
 
+configure () {
+    MYPATH=`python -c "import os.path; print os.path.realpath('$0')"`
+    THISDIR=`dirname $MYPATH`
+    python $THISDIR/zenwebserverconfig.py
+}
+
 help () {
     RELOAD=$(dontusenginx || echo "|reload|attach|detach")
-    echo "Usage: $0 {run|start|stop|restart|status|deploy${RELOAD}|debug|help} [-v] [targets]"
+    echo "Usage: $0 {run|start|stop|restart|status|deploy${RELOAD}|debug|configure|help} [-v] [targets]"
 }
 
 
@@ -637,6 +643,10 @@ parse () {
         ;;
       status)
         status
+        ;;
+      configure)
+        VERBOSE=1 # No terse mode necessary
+        configure "$@"
         ;;
       help)
         help
