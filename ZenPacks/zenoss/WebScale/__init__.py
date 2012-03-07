@@ -125,6 +125,9 @@ class ZenPack(ZenPackBase):
         # Create mime.types symlink
         self._symlink(('mime.types',), ('etc', 'mime.types'))
 
+        # copy 50x page
+        self._copy(('zenwebserver_50x.html',), ('html', 'zenwebserver_50x.html'))
+
         # Copy in nginx configs, does not replace existing configs
         self._copy(('zenwebserver.conf.tmp',), ('etc', 'zenwebserver.conf'))
         self._copy(('nginx-zope.conf',), ('etc', 'nginx-zope.conf'))
