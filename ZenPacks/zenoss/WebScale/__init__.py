@@ -125,6 +125,9 @@ class ZenPack(ZenPackBase):
         # Create mime.types symlink
         self._symlink(('mime.types',), ('etc', 'mime.types'))
 
+        # make sure the html directory exists
+        os.mkdir(zenPath('html'))
+
         # copy 50x page
         self._copy(('zenwebserver_50x.html',), ('html', 'zenwebserver_50x.html'))
 
