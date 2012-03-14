@@ -13,9 +13,9 @@ MAXPOOLSIZE=30
 # Base port on which all Zopes will be based (usually 8080)
 BASEPORT=$(grep -e '^[ \t]*address[ \t]\{1,\}[0-9]\{1,\}[ \t]*$' ${ZOPECONF} | awk '{print $2}')
 
-RED=$(tput setaf 1)
-GREEN=$(tput setaf 2)
-NORMAL=$(tput sgr0)
+RED=$(tput setaf 1 2>/dev/null)
+GREEN=$(tput setaf 2  2>/dev/null)
+NORMAL=$(tput sgr0 2>/dev/null)
 
 VERBOSE=
 is_verbose () {

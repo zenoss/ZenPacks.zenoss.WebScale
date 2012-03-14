@@ -39,7 +39,6 @@ MAPPING2 = {'HTTP_PORT': 'httpPort',
             'SSL_KEY': 'sslKey',
             }
 
-zenhome = os.getenv('ZENHOME')
 substitutions = {'INSTANCE_HOME':zenhome,
                  'SSL_PORT':'443',
                  'PORT':'8080',
