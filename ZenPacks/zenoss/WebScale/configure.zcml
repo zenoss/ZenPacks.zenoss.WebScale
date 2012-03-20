@@ -2,17 +2,17 @@
 <configure xmlns="http://namespaces.zope.org/zope"
            xmlns:zcml="http://namespaces.zope.org/zcml">
 
-    <subscriber zcml:condition="installed ZenPacks.zenoss.DistributedCollector"
+    <subscriber zcml:condition="installed ZenPacks.zenoss.DistributedCollector.interfaces"
                 for="ZenPacks.zenoss.DistributedCollector.DistributedPerformanceConf.DistributedPerformanceConf
 		     ZenPacks.zenoss.DistributedCollector.interfaces.ICollectorPropertiesUpdated"
                 handler=".distributedcollector.onCollectorUpdated"/>
 
-    <subscriber zcml:condition="installed ZenPacks.zenoss.DistributedCollector"
+    <subscriber zcml:condition="installed ZenPacks.zenoss.DistributedCollector.interfaces"
                 for="ZenPacks.zenoss.DistributedCollector.DistributedPerformanceConf.DistributedPerformanceConf
 		     ZenPacks.zenoss.DistributedCollector.interfaces.ICollectorInstalled"
                 handler=".distributedcollector.onCollectorInstalled"/>
 
-    <subscriber zcml:condition="installed ZenPacks.zenoss.DistributedCollector"
+    <subscriber zcml:condition="installed ZenPacks.zenoss.DistributedCollector.interfaces"
                 for="ZenPacks.zenoss.DistributedCollector.DistributedPerformanceConf.DistributedPerformanceConf
 		     ZenPacks.zenoss.DistributedCollector.interfaces.ICollectorDeleted"
                 handler=".distributedcollector.onCollectorDeleted"/>

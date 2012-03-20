@@ -2,7 +2,7 @@
 <configure xmlns="http://namespaces.zope.org/zope"
            xmlns:zcml="http://namespaces.zope.org/zcml">
 
-    <adapter zcml:condition="installed ZenPacks.zenoss.DistributedCollector"
+    <adapter zcml:condition="installed ZenPacks.zenoss.DistributedCollector.interfaces"
              factory=".distributedcollector.WebScaleRenderUrlProvider"/>
 
 </configure>
