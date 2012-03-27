@@ -89,15 +89,18 @@ class ZenPack(ZenPackBase):
             os.remove(dest)
         os.symlink(src, dest)
 
-    def _copy(self, fro, to):
+    def _copy(self, fro, to, backup=False):
         """
         Copy from a path within this zenpack to a path under $ZENHOME.
-        Do NOT overwrite existing files.
+        Do NOT overwrite existing files unless backup is True
         Pass in tuples of path segments.
         """
         src = self.path(*fro)
         dest = zenPath(*to)
-        if not os.path.exists(dest):
+        if backup and os.path.exists(dest):
+            # save file to backup
+            shutil.copyfile(dest, '%s.prev' % dest)
+        if backup or not os.path.exists(dest):
             shutil.copyfile(src, dest)
 
     def install(self, dmd):
@@ -135,6 +138,9 @@ class ZenPack(ZenPackBase):
         # copy 50x page
         self._copy(('zenwebserver_50x.html',), ('html', 'zenwebserver_50x.html'))
 
+        #copy nginx config template to etc
+        self._copy(('nginx.conf.template',), ('etc', 'nginx.conf.template'), backup=True)
+
         # Copy in nginx configs, does not replace existing configs
         self._copy(('zenwebserver.conf.tmp',), ('etc', 'zenwebserver.conf'))
         self._copy(('nginx-zope.conf',), ('etc', 'nginx-zope.conf'))
@@ -154,6 +160,13 @@ class ZenPack(ZenPackBase):
             log.info("Created nginx log directory")
         except OSError:
             # Already exists
+            pass
+
+
+        try:
+            os.mkdir(zenPath('var','nginx'))
+        except OSError:
+            #already exists
             pass
 
         if is_using_many_zopes():

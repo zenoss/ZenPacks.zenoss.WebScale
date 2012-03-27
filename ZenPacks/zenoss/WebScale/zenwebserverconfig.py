@@ -19,19 +19,25 @@ if not zenhome:
 defaultCert = 'ssl_certificate {INSTANCE_HOME}/etc/ssl/zenoss.crt'.format(INSTANCE_HOME=zenhome)
 defaultKey = 'ssl_certificate_key {INSTANCE_HOME}/etc/ssl/zenoss.key'.format(INSTANCE_HOME=zenhome)
 
+nginxCache = '{INSTANCE_HOME}/var/nginx/cache'.format(INSTANCE_HOME=zenhome)
+nginxTmp = '%s/tmp' % nginxCache
+customHttpInclude = '{INSTANCE_HOME}/etc/nginx-custom-http-*.conf'.format(INSTANCE_HOME=zenhome)
+customServerInclude = '{INSTANCE_HOME}/etc/nginx-custom-server-*.conf'.format(INSTANCE_HOME=zenhome)
+
 config = {'useSSL': 'False',
           'httpPort': '8080',
           'sslPort': '443',
-          'sslCert':defaultCert,
-          'sslKey':defaultKey
-          }
+          'sslCert': defaultCert,
+          'sslKey': defaultKey,
+          'worker_processes': '4',
+          'proxy_cache_path': nginxCache,
+          'proxy_temp_path': nginxTmp,
+          'client_body_temp_path': nginxTmp,
+          'customServerInclude':customServerInclude,
+          'customHttpInclude':customHttpInclude
+}
 
-MAPPING = {'httpPort': 'HTTP_PORT',
-           'sslPort': 'SSL_PORT',
-           'sslCert': 'SSL_CERT',
-           'sslKey': 'SSL_KEY',
-           }
-
+#mapping of conf file values to substitutions
 MAPPING2 = {'HTTP_PORT': 'httpPort',
             'PORT': 'httpPort',
             'SSL_PORT': 'sslPort',
@@ -39,21 +45,17 @@ MAPPING2 = {'HTTP_PORT': 'httpPort',
             'SSL_KEY': 'sslKey',
             }
 
-substitutions = {'INSTANCE_HOME':zenhome,
-                 'SSL_PORT':'443',
-                 'PORT':'8080',
-                 'HTTP_PORT':'8080',
-                 'FILE_BEGIN':'',
-                 'PROTOCOL':'http',
-                 'PRE_SERVERBLOCK':'',
-                 'SSL_CONFIG':''
-                }
+substitutionDefaults = {'INSTANCE_HOME':zenhome,
+                        'PROTOCOL':'http',
+                        'FILE_BEGIN':'',
+                        'PRE_SERVERBLOCK':'',
+                        'SSL_CONFIG': '',
+                        }
 
 print "Generating new config"
 
 CONF_FILE_TEMPLATE = None
-dirPath = os.path.dirname(sys.argv[0])
-templatePath = '%s/nginx.conf.template' % dirPath
+templatePath = '{INSTANCE_HOME}/etc/nginx.conf.template'.format(INSTANCE_HOME=zenhome)
 try:
     lines = []
     with open(templatePath, 'r') as f:
@@ -78,18 +80,23 @@ try:
 except IOError:
     print "%s not found; using default values" % webserverConf
 
+substitutions = dict(substitutionDefaults)
 
+#map conf file values to substitutions
 for key, val in MAPPING2.items():
     if val in config:
         substitutions[key] = config.get(val)
 
+#add all other values from conf file into substitutions
+for key, val in config.items():
+    #don't overwrite special config values
+    if key not in substitutions:
+        substitutions[key]=val
+
 useSSL = config['useSSL'].lower() == 'true'
 if useSSL:
     substitutions['PROTOCOL']='HTTPS'
-    substitutions['SSL_PORT'] = config['sslPort']
     substitutions['PORT'] = config['sslPort']
-    substitutions['SSL_CERT'] = config['sslCert']
-    substitutions['SSL_KEY'] = config['sslKey']
 
     substitutions['FILE_BEGIN'] = """
 #####################################################################################
@@ -150,8 +157,3 @@ except IOError as e:
         shutil.copy(path_bak, path)
         print "Previous config restored"
     sys.exit(1)
-
-
-
-
-

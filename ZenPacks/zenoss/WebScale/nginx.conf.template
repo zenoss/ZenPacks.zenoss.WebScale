@@ -1,7 +1,7 @@
 # TEMPLATE used for generating nginx.conf. Format is python string formatting http://docs.python.org/library/stdtypes.html#string-formatting
 {FILE_BEGIN}
 
-worker_processes  4;
+worker_processes  {worker_processes};
 pid {INSTANCE_HOME}/var/nginx.pid;
 error_log {INSTANCE_HOME}/log/nginx/error.log info;
 
@@ -13,9 +13,9 @@ http {{
     include       {INSTANCE_HOME}/etc/mime.types;
     default_type  application/octet-stream;
 
-    proxy_cache_path  {INSTANCE_HOME}/var/nginx-cache levels=1:2 keys_zone=zenoss-cache:8m max_size=1000m inactive=600m;
-    proxy_temp_path {INSTANCE_HOME}/var/nginx-cache/tmp;
-    client_body_temp_path {INSTANCE_HOME}/var/nginx-cache/tmp;
+    proxy_cache_path  {proxy_cache_path} levels=1:2 keys_zone=zenoss-cache:8m max_size=1000m inactive=600m;
+    proxy_temp_path {proxy_temp_path};
+    client_body_temp_path {client_body_temp_path};
 
     sendfile        on;
     tcp_nopush      on;
@@ -30,6 +30,8 @@ http {{
     gzip_disable "MSIE [1-6]\.(?!.*SV1)";
 
     include {INSTANCE_HOME}/etc/nginx-zope.conf;
+
+    include {customHttpInclude};
 
     {PRE_SERVERBLOCK}
 
@@ -49,12 +51,15 @@ http {{
             proxy_read_timeout 600s;
             client_max_body_size 500m;
         }}
+
         location /nginx_status {{
             stub_status on;
             access_log off;
         }}
 
         include {INSTANCE_HOME}/etc/nginx-dc-*.conf;
+
+        include {customServerInclude};
 
         location ~* \.(jpg|png|gif|jpeg|css|js|mp3|wav|swf|mov|doc|pdf|xls|ppt|docx|pptx|xlsx)$ {{
             proxy_pass http://zopectls;
