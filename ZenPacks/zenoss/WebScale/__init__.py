@@ -5,7 +5,6 @@
 ######################################################################
 import Globals
 import os
-import sys
 import time
 import shutil
 import logging
@@ -13,19 +12,9 @@ import subprocess
 from Products.ZenUtils.Utils import zenPath
 from Products.ZenModel.ZenPack import ZenPackBase
 
+from ZenPacks.zenoss.WebScale.config import ZopeConfig
 
 log = logging.getLogger("zen.WebScale")
-
-
-def get_port():
-    port = '8080'
-    with open(zenPath('etc', 'zope.conf'), 'r') as f:
-        for line in f:
-            if line.strip().startswith('address'):
-                port = line.split()[-1]
-                break
-    return port
-
 
 def replace_zopectl_in_daemons_txt():
     daemonstxt = zenPath('etc', 'daemons.txt')
@@ -103,7 +92,37 @@ class ZenPack(ZenPackBase):
         if backup or not os.path.exists(dest):
             shutil.copyfile(src, dest)
 
+    def _create_zenhome_dirs(self, *dirs):
+        """
+        Creates directories (with mode 0755) in ZENHOME. zenPath is called
+        on each directory name to normalize it relative to ZENHOME.
+        """
+        for d in map(zenPath, dirs):
+            if not os.path.isdir(d):
+                os.makedirs(d, mode=0755)
+
+    def _remove_zenhome_files(self, *files):
+        """
+        Removes files in ZENHOME (if found). zenPath is called on each
+        filename to normalize it relative to ZENHOME.
+        """
+        for f in map(zenPath, files):
+            if os.path.exists(f):
+                os.remove(f)
+
+    def _remove_zenhome_dirs(self, *dirs):
+        """
+        Removes directores in ZENHOME (if found). zenPath is called on each
+        directory name to normalize it relative to ZENHOME.
+        """
+        for d in map(zenPath, dirs):
+            if os.path.isdir(d):
+                shutil.rmtree(d)
+
     def install(self, dmd):
+        # Run migrate scripts
+        ZenPackBase.install(self, dmd)
+
         log.info("Installing zenwebserver and nginx to $ZENHOME/bin")
         # Create zenwebserver symlink
         self._symlink(('zenwebserver',), ('bin', 'zenwebserver'))
@@ -115,25 +134,21 @@ class ZenPack(ZenPackBase):
 
         log.info("Installing nginx configuration to $ZENHOME/etc")
 
-        port = get_port()
+        zopeConfig = ZopeConfig()
+        port = zopeConfig.http_base_port
         log.info("Detected Zope is using port %s" % port)
-
 
         # Replace strings in zenwebserver.conf
         with open(self.path('zenwebserver.conf'), 'r') as f, open(self.path('zenwebserver.conf.tmp'), 'w') as f2:
             f2.write(f.read()
                      .replace('<<INSTANCE_HOME>>', zenPath())
-                     .replace('<<PORT>>', port))
+                     .replace('<<PORT>>', str(port)))
 
         # Create mime.types symlink
         self._symlink(('mime.types',), ('etc', 'mime.types'))
 
         # make sure the html directory exists
-        try:
-            os.mkdir(zenPath('html'))
-        except OSError:
-            #already exists
-            pass
+        self._create_zenhome_dirs('html','etc/zope','log/nginx','var/nginx/cache','var/nginx/tmp')
 
         # copy 50x page
         self._copy(('zenwebserver_50x.html',), ('html', 'zenwebserver_50x.html'))
@@ -147,27 +162,6 @@ class ZenPack(ZenPackBase):
 
         # Clean up
         os.remove(self.path('zenwebserver.conf.tmp'))
-
-        try:
-            os.mkdir(zenPath('etc', 'zope'))
-            log.info("Created multi-Zope config directory")
-        except OSError:
-            # Already exists
-            pass
-
-        try:
-            os.mkdir(zenPath('log', 'nginx'))
-            log.info("Created nginx log directory")
-        except OSError:
-            # Already exists
-            pass
-
-
-        try:
-            os.mkdir(zenPath('var','nginx'))
-        except OSError:
-            #already exists
-            pass
 
         if is_using_many_zopes():
             log.warn("Already using multiple Zopes; not switching to use zenwebserver by default.")
@@ -187,16 +181,25 @@ class ZenPack(ZenPackBase):
             subprocess.call([zenPath('bin', 'zenwebserver'), 'stop'])
         except OSError:
             log.warn('Unable to shut down zenwebserver')
+
+        # Remove old directories which are no longer used
+        self._remove_zenhome_dirs('fastcgi_temp', 'scgi_temp', 'uwsgi_temp')
+
         if not leaveObjects: # upgrade
             use_zopectl()
             log.info("Uninstalling zenwebserver and nginx")
-            for f in ('bin/zenwebserver', 'bin/nginx', 'etc/mime.types'):
-                try:
-                    os.remove(zenPath(f))
-                except OSError:
-                    log.info("%s doesn't exist, so not removing" % zenPath(f))
-            try:
-                shutil.rmtree(zenPath('etc', 'zope'))
-            except OSError:
-                log.info("Multi-zope config directory doesn't exist, so not removing")
+            remove_files = ('bin/zenwebserver', 'bin/nginx', 'etc/mime.types', 'html/zenwebserver_50x.html',
+                            'etc/nginx.conf', 'etc/nginx-zope.conf')
+            self._remove_zenhome_files(*remove_files)
+
+            remove_dirs = ['etc/zope', 'var/nginx', 'var/nginx_temp', 'var/nginx-cache']
+            # Remove Zope directories
+            var_dir = zenPath('var')
+            if os.path.isdir(var_dir):
+                zope_dirs = (entry for entry in os.listdir(var_dir) if entry.startswith('zope'))
+                for zope_dir in zope_dirs:
+                    full_path = os.path.join(var_dir, zope_dir)
+                    if os.path.isdir(full_path):
+                        remove_dirs.append('var/' + zope_dir)
+            self._remove_zenhome_dirs(*remove_dirs)
             log.info("Uninstalled zenwebserver. You will need to start Zope.")

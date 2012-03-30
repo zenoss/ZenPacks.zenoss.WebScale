@@ -20,7 +20,7 @@ defaultCert = 'ssl_certificate {INSTANCE_HOME}/etc/ssl/zenoss.crt'.format(INSTAN
 defaultKey = 'ssl_certificate_key {INSTANCE_HOME}/etc/ssl/zenoss.key'.format(INSTANCE_HOME=zenhome)
 
 nginxCache = '{INSTANCE_HOME}/var/nginx/cache'.format(INSTANCE_HOME=zenhome)
-nginxTmp = '%s/tmp' % nginxCache
+nginxTmp = '{INSTANCE_HOME}/var/nginx/tmp'.format(INSTANCE_HOME=zenhome)
 customHttpInclude = '{INSTANCE_HOME}/etc/nginx-custom-http-*.conf'.format(INSTANCE_HOME=zenhome)
 customServerInclude = '{INSTANCE_HOME}/etc/nginx-custom-server-*.conf'.format(INSTANCE_HOME=zenhome)
 
@@ -31,8 +31,8 @@ config = {'useSSL': 'False',
           'sslKey': defaultKey,
           'worker_processes': '4',
           'proxy_cache_path': nginxCache,
-          'proxy_temp_path': nginxTmp,
-          'client_body_temp_path': nginxTmp,
+          'proxy_temp_path': nginxTmp + '/proxy',
+          'client_body_temp_path': nginxTmp + '/client_body',
           'customServerInclude':customServerInclude,
           'customHttpInclude':customHttpInclude
 }
@@ -124,9 +124,9 @@ user zenoss zenoss;
 """.format(**substitutions)
 
 headerline = """
-#####################################################################################
+#########################################################################################
 # GENERATED FILE, DO NOT MODIFY. USE {INSTANCE_HOME}/etc/zenwebserver.conf to set options
-#####################################################################################
+#########################################################################################
 """.format(**substitutions)
 
 

@@ -44,7 +44,11 @@ $(BINDIR)/nginx: $(BINDIR)/.d $(PREFIXDIR)/.d $(UPSTREAMFAIRDIR)/.d $(NGINXDIR)/
        		--prefix=$(PREFIXDIR) \
 			--builddir=$(BUILDDIR) \
 			--sbin-path=$(BINDIR)/nginx \
-			--http-client-body-temp-path=$(PREFIXDIR)/var/nginx_temp \
+			--http-client-body-temp-path=$(PREFIXDIR)/var/nginx/tmp/client_body \
+			--http-proxy-temp-path=$(PREFIXDIR)/var/nginx/tmp/proxy \
+			--http-fastcgi-temp-path=$(PREFIXDIR)/var/nginx/tmp/fcgi \
+			--http-uwsgi-temp-path=$(PREFIXDIR)/var/nginx/tmp/uwsgi \
+			--http-scgi-temp-path=$(PREFIXDIR)/var/nginx/tmp/scgi \
 			--http-log-path=$(PREFIXDIR)/log/nginx/access.log \
 			--error-log-path=$(PREFIXDIR)/log/nginx/error.log \
 			--with-http_ssl_module \
