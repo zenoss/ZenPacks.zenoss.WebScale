@@ -34,7 +34,9 @@ config = {'useSSL': 'False',
           'proxy_temp_path': nginxTmp + '/proxy',
           'client_body_temp_path': nginxTmp + '/client_body',
           'customServerInclude':customServerInclude,
-          'customHttpInclude':customHttpInclude
+          'customHttpInclude':customHttpInclude,
+          'error_log_level': 'warn',
+
 }
 
 #mapping of conf file values to substitutions

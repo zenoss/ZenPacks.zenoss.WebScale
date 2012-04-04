@@ -3,7 +3,7 @@
 
 worker_processes  {worker_processes};
 pid {INSTANCE_HOME}/var/nginx.pid;
-error_log {INSTANCE_HOME}/log/nginx/error.log info;
+error_log {INSTANCE_HOME}/log/nginx/error.log {error_log_level};
 
 events {{
     worker_connections  1024;
