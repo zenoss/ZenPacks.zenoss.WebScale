@@ -302,7 +302,7 @@ start () {
     fi
 
     TARGETS=$(targets "$@")
-
+    EXITCODE=1
     for TARGET in ${TARGETS}; do
         if [ ${TARGET} == 'nginx' ]; then
             # Start nginx
@@ -312,6 +312,7 @@ start () {
             else
                 clearcache
                 execwithmsg_verbose "Starting load balancer" ${NGINX}
+                EXITCODE=0
             fi
             is_verbose && echo
         elif [ -z "${ALREADYSTARTED}" ]; then
@@ -322,20 +323,24 @@ start () {
             else
                 zopeexec ${NUM} "Starting" start
                 sleep 1
+                EXITCODE=0
             fi
             is_verbose && echo
         fi
     done
+    return ${EXITCODE}
 }
 
 stop () {
     log_terse stopping...
     TARGETS=$(targets "$@")
+    EXITCODE=1
     for TARGET in ${TARGETS}; do
         if [ ${TARGET} == 'nginx' ]; then
             # Shut down nginx
             if $(nginxstatus > /dev/null 2>&1); then
                 execwithmsg "Stopping load balancer" ${NGINX} -s stop
+                EXITCODE=0
             else
                 log_terse "already stopped"
                 printmsg "Load balancer already stopped" && ok
@@ -345,11 +350,13 @@ stop () {
             CONFIG="$(configfile ${NUM})"
             if $(zopestatus "${CONFIG}" > /dev/null 2>&1); then
                 zopeexec ${NUM} "Stopping" stop
+                EXITCODE=0
             else
                 printmsg "Server ${NUM} already stopped" && ok
             fi
         fi
     done
+    return ${EXITCODE}
 }
 
 addnodupes () {
@@ -414,6 +421,7 @@ restart () {
             echo
         fi
     done
+    return 0
 }
 
 reload () {
