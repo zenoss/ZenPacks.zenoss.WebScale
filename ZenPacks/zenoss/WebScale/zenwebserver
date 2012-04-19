@@ -588,17 +588,19 @@ nginxstatus () {
 }
 
 status () {
+    EXITCODE=1
     if [ -z ${VERBOSE} ]; then
         dontusenginx || (nginxstatus >/dev/null 2>&1) \
-            && echo "program running; pid=$(cat ${NGINXPIDFILE})" \
+            && echo "program running; pid=$(cat ${NGINXPIDFILE})" && EXITCODE=0 \
             || echo "not running"
     else
         for FNAME in $(ls $ZOPECONFDIR/*.conf); do
             zopestatus ${FNAME}
             is_verbose && echo
         done
-        dontusenginx || nginxstatus && is_verbose && echo
+        dontusenginx || nginxstatus && EXITCODE=0 && is_verbose && echo
     fi
+    return ${EXITCODE}
 }
 
 configure () {
