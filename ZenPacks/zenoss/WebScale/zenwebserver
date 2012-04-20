@@ -590,10 +590,27 @@ nginxstatus () {
 
 status () {
     EXITCODE=1
+    MSG=""
     if [ -z ${VERBOSE} ]; then
         dontusenginx || (nginxstatus >/dev/null 2>&1) \
-            && echo "program running; pid=$(cat ${NGINXPIDFILE})" && EXITCODE=0 \
-            || echo "not running"
+            && MSG="program running; pid=$(cat ${NGINXPIDFILE})" \
+            || MSG="not running"
+        # if no zopes are up then make exitcode 0
+        TARGETS=$(targets "$@")
+        for TARGET in ${TARGETS}; do
+            NUM=${TARGET}
+            CONFIG=$(configfile ${NUM})
+            if $(zopestatus ${CONFIG} > /dev/null 2>&1); then
+                EXITCODE=0
+                break
+            fi
+        done
+        # report the status
+        if [ ${EXITCODE} -ge 1 ]; then
+            echo "not running"
+        else
+            echo ${MSG}
+        fi
     else
         for FNAME in $(ls $ZOPECONFDIR/*.conf); do
             zopestatus ${FNAME}
