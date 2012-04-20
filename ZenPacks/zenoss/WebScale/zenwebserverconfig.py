@@ -103,6 +103,17 @@ if useSSL:
     substitutions['FILE_BEGIN'] = """
 #####################################################################################
 #  SSL Configuration for zenwebserver
+#
+#  Instructions:
+#
+#  1. Put your certificate and key files in $ZENHOME/etc/ssl, named zenoss.crt
+#     and zenoss.key (or change the names/paths below)
+#
+#  2. sudo chmod 04750 `readlink $ZENHOME/bin/nginx`
+#     sudo chown root:zenoss `readlink $ZENHOME/bin/nginx`
+#
+#  3. zenwebserver restart
+#
 #####################################################################################
 user zenoss zenoss;
 """
