@@ -353,6 +353,7 @@ stop () {
                 EXITCODE=0
             else
                 printmsg "Server ${NUM} already stopped" && ok
+                EXITCODE=0
             fi
         fi
     done
