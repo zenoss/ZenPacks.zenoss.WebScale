@@ -320,6 +320,7 @@ start () {
             CONFIG=$(configfile ${NUM})
             if $(zopestatus ${CONFIG} > /dev/null 2>&1); then
                 printmsg "Server ${NUM} already running" && ok
+                EXITCODE=0
             else
                 zopeexec ${NUM} "Starting" start
                 sleep 1
