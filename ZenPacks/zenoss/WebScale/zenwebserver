@@ -309,6 +309,7 @@ start () {
             if $(nginxstatus > /dev/null 2>&1); then
                 log_terse "already running"
                 printmsg "Load balancer already running" && ok
+                EXITCODE=0
             else
                 clearcache
                 execwithmsg_verbose "Starting load balancer" ${NGINX}
@@ -591,33 +592,18 @@ nginxstatus () {
 
 status () {
     EXITCODE=1
-    MSG=""
+    ZOPENUM=$(ls -1 $ZOPECONFDIR/*.conf | wc -l)
+    for FNAME in $(ls $ZOPECONFDIR/*.conf); do
+        zopestatus ${FNAME} || ZOPENUM=$(( $ZOPENUM - 1 ))
+        is_verbose && echo
+    done
     if [ -z ${VERBOSE} ]; then
         dontusenginx || (nginxstatus >/dev/null 2>&1) \
-            && MSG="program running; pid=$(cat ${NGINXPIDFILE})" \
-            || MSG="not running"
-        # if no zopes are up then make exitcode 0
-        TARGETS=$(targets "$@")
-        for TARGET in ${TARGETS}; do
-            NUM=${TARGET}
-            CONFIG=$(configfile ${NUM})
-            if $(zopestatus ${CONFIG} > /dev/null 2>&1); then
-                EXITCODE=0
-                break
-            fi
-        done
-        # report the status
-        if [ ${EXITCODE} -ge 1 ]; then
-            echo "not running"
-        else
-            echo ${MSG}
-        fi
+            && echo "program running; pid=$(cat ${NGINXPIDFILE})" \
+            && [ $ZOPENUM -gt 0 ] && EXITCODE=0 \
+            || echo "not running"
     else
-        for FNAME in $(ls $ZOPECONFDIR/*.conf); do
-            zopestatus ${FNAME}
-            is_verbose && echo
-        done
-        dontusenginx || nginxstatus && EXITCODE=0 && is_verbose && echo
+        dontusenginx || nginxstatus && [ $ZOPENUM -gt 0 ] && EXITCODE=0 && is_verbose && echo
     fi
     return ${EXITCODE}
 }
