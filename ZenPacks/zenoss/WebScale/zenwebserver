@@ -295,7 +295,7 @@ start () {
     log_terse starting...
 
     # If there are no Zopes yet (i.e., just installed), deploy two
-    if [ -z "$(ls $ZOPECONFDIR/*.conf 2>/dev/null)" ]; then
+    if [ $(numzopes) -eq 0 ]; then
         createconf 1
         createconf 2
         ALREADYSTARTED=1
@@ -435,7 +435,7 @@ deploy () {
     mkdir -p ${ZOPECONFDIR}
 
     # Determine the total number of Zopes we should end up with
-    TOTALZOPES=$(ls ${ZOPECONFDIR} | wc -l)
+    TOTALZOPES=$(numzopes)
     NEWTOTAL=$1
     [[ "${NEWTOTAL}" =~ ^[-+] ]] && NEWTOTAL=$(expr $TOTALZOPES $(echo ${NEWTOTAL} | sed 's/[-+]/& /g'))
 
@@ -592,11 +592,13 @@ nginxstatus () {
 
 status () {
     EXITCODE=1
-    ZOPENUM=$(ls -1 $ZOPECONFDIR/*.conf | wc -l)
-    for FNAME in $(ls $ZOPECONFDIR/*.conf); do
-        zopestatus ${FNAME} || ZOPENUM=$(( $ZOPENUM - 1 ))
-        is_verbose && echo
-    done
+    ZOPENUM=$(numzopes)
+    if [ $ZOPENUM -gt 0 ]; then
+        for FNAME in $(ls $ZOPECONFDIR/zope*.conf); do
+            zopestatus ${FNAME} || ZOPENUM=$(( $ZOPENUM - 1 ))
+            is_verbose && echo
+        done
+    fi
     if [ -z ${VERBOSE} ]; then
         dontusenginx || (nginxstatus >/dev/null 2>&1) \
             && echo "program running; pid=$(cat ${NGINXPIDFILE})" \
