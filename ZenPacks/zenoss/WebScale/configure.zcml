@@ -17,4 +17,18 @@
 		     ZenPacks.zenoss.DistributedCollector.interfaces.ICollectorDeleted"
                 handler=".distributedcollector.onCollectorDeleted"/>
 
+    <subscriber zcml:condition="installed ZenPacks.zenoss.DistributedCollector.interfaces"
+                for="ZenPacks.zenoss.DistributedCollector.HubConf.HubConf
+		     ZenPacks.zenoss.DistributedCollector.interfaces.IHubPropertiesUpdated"
+                handler=".distributedcollector.onHubUpdated"/>
+
+    <subscriber zcml:condition="installed ZenPacks.zenoss.DistributedCollector.interfaces"
+                for="ZenPacks.zenoss.DistributedCollector.HubConf.HubConf
+		     ZenPacks.zenoss.DistributedCollector.interfaces.IHubInstalled"
+                handler=".distributedcollector.onHubInstalled"/>
+
+    <subscriber zcml:condition="installed ZenPacks.zenoss.DistributedCollector.interfaces"
+                for="ZenPacks.zenoss.DistributedCollector.HubConf.HubConf
+		     ZenPacks.zenoss.DistributedCollector.interfaces.IHubDeleted"
+                handler=".distributedcollector.onHubDeleted"/>
 </configure>

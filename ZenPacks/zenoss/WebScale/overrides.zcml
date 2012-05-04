@@ -5,4 +5,7 @@
     <adapter zcml:condition="installed ZenPacks.zenoss.DistributedCollector.interfaces"
              factory=".distributedcollector.WebScaleRenderUrlProvider"/>
 
+    <adapter zcml:condition="installed ZenPacks.zenoss.DistributedCollector.interfaces"
+             factory=".distributedcollector.WebScaleHubRenderUrlProvider"/>
+
 </configure>
