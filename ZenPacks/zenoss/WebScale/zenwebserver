@@ -621,10 +621,24 @@ help () {
     echo "Usage: $0 {run|start|stop|restart|status|deploy${RELOAD}|debug|configure|help} [-v] [targets]"
 }
 
+audit() {
+    case "${ACTION}" in
+      status)
+        ;;
+      help)
+        ;;
+      *)
+        if [ -e $ZENHOME/bin/zensendaudit ] ; then
+          zensendaudit kind=Daemon action=$ACTION daemon=zenwebserver
+        fi
+        ;;
+    esac
+}
 
 parse () {
     ACTION=$1
     shift
+    audit
     case "${ACTION}" in
       fg)
         foreground "$@"
