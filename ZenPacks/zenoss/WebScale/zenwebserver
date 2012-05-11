@@ -629,7 +629,7 @@ audit() {
         ;;
       *)
         if [ -e $ZENHOME/bin/zensendaudit ] ; then
-          zensendaudit kind=Daemon action=$ACTION daemon=zenwebserver
+          zensendaudit kind=Daemon action=$ACTION daemon=zenwebserver > /dev/null 2>&1
         fi
         ;;
     esac
