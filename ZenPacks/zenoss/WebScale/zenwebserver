@@ -109,7 +109,7 @@ clearcache () {
         CACHE_DIR="${ZENHOME}/var/nginx/cache"
     fi
     if [ -d "${CACHE_DIR}" ]; then
-        rm -rf "${CACHE_DIR}"
+        rm -rf "${CACHE_DIR} 2>/dev/null"
     fi
 }
 

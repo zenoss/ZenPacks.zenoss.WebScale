@@ -16,8 +16,8 @@ if not zenhome:
 # useSSL
 # sslCert
 # sslKey
-defaultCert = 'ssl_certificate {INSTANCE_HOME}/etc/ssl/zenoss.crt'.format(INSTANCE_HOME=zenhome)
-defaultKey = 'ssl_certificate_key {INSTANCE_HOME}/etc/ssl/zenoss.key'.format(INSTANCE_HOME=zenhome)
+defaultCert = '{INSTANCE_HOME}/etc/ssl/zenoss.crt'.format(INSTANCE_HOME=zenhome)
+defaultKey = '{INSTANCE_HOME}/etc/ssl/zenoss.key'.format(INSTANCE_HOME=zenhome)
 
 nginxCache = '{INSTANCE_HOME}/var/nginx/cache'.format(INSTANCE_HOME=zenhome)
 nginxTmp = '{INSTANCE_HOME}/var/nginx/tmp'.format(INSTANCE_HOME=zenhome)
@@ -97,7 +97,7 @@ for key, val in config.items():
 
 useSSL = config['useSSL'].lower() == 'true'
 if useSSL:
-    substitutions['PROTOCOL']='HTTPS'
+    substitutions['PROTOCOL']='https'
     substitutions['PORT'] = config['sslPort']
 
     substitutions['FILE_BEGIN'] = """
@@ -109,8 +109,13 @@ if useSSL:
 #  1. Put your certificate and key files in $ZENHOME/etc/ssl, named zenoss.crt
 #     and zenoss.key (or change the names/paths below)
 #
-#  2. sudo chmod 04750 `readlink $ZENHOME/bin/nginx`
+#  2. Run the following commands to give the nginx binary the necessary privileges to
+#     use restricted ports.
+#     Note: The readlink in the command will get the correct path
+#     to the nginx binary since it is a symlink.
+#
 #     sudo chown root:zenoss `readlink $ZENHOME/bin/nginx`
+#     sudo chmod 04750 `readlink $ZENHOME/bin/nginx`
 #
 #  3. zenwebserver restart
 #
@@ -132,8 +137,8 @@ user zenoss zenoss;
     substitutions['SSL_CONFIG'] = """
         ssl on;
         # The names/paths of your certificate files
-        {SSL_CERT};
-        {SSL_KEY};
+        ssl_certificate {SSL_CERT};
+        ssl_certificate_key {SSL_KEY};
 """.format(**substitutions)
 
 headerline = """
