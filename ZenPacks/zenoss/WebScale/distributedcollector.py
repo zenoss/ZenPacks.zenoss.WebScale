@@ -103,7 +103,7 @@ def _reconfigureNginx(id, host, dctype):
 
 _NGINX_CONF_TMPL = """
 location ^~ /remote-{collectorType}/{collectorId}/ {{
-    rewrite ^/remote-{collectorType}/(.*)$ /$1 break;
+    rewrite ^/remote-{collectorType}/{collectorId}/(.*)$ /$1 break;
     proxy_pass http://{collectorHost}:{collectorPort};
 
     proxy_set_header        Host    $host;
