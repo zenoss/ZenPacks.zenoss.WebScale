@@ -1,8 +1,12 @@
-##########################################################################
-#
-#   Copyright 2012 Zenoss, Inc. All Rights Reserved.
-#
-##########################################################################
+##############################################################################
+# 
+# Copyright (C) Zenoss, Inc. 2012, all rights reserved.
+# 
+# This content is made available according to terms specified in
+# License.zenoss under the directory where your Zenoss product is installed.
+# 
+##############################################################################
+
 
 import Globals
 import os
@@ -165,4 +169,3 @@ class NginxConfig(object):
         @return: A list of ZopeServerAddress objects for the configured zopes.
         """
         return self._zope_servers
-
