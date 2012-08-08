@@ -1,10 +1,10 @@
 ##############################################################################
-# 
+#
 # Copyright (C) Zenoss, Inc. 2012, all rights reserved.
-# 
+#
 # This content is made available according to terms specified in
 # License.zenoss under the directory where your Zenoss product is installed.
-# 
+#
 ##############################################################################
 
 
@@ -111,6 +111,8 @@ location ^~ /remote-{collectorType}/{collectorId}/ {{
     rewrite ^/remote-{collectorType}/{collectorId}/(.*)$ /$1 break;
     proxy_pass http://{collectorHost}:{collectorPort};
 
+    proxy_read_timeout 600s;
+    client_max_body_size 500m;
     proxy_set_header        Host    $host;
     proxy_set_header        X-Real-IP $remote_addr;
     proxy_set_header        X-Forwarded-For $proxy_add_x_forwarded_for;
