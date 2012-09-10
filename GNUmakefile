@@ -35,13 +35,14 @@ egg:
 
 $(NGINXDIR)/.d: $(BUILDDIR)/.d
 	@cd $(BUILDDIR) && tar xzf $(NGINX)
+	cd $(BUILDDIR) && patch -p 0 < $(LIBDIR)/nginx-1.0.10.all.patch
 	@touch $(@)
 
 $(UPSTREAMFAIRDIR)/.d: $(BUILDDIR)/.d
 	@cd $(BUILDDIR) && tar xzf $(UPSTREAMFAIR)
 	@touch $(@)
 
-$(BINDIR)/nginx: $(BINDIR)/.d $(PREFIXDIR)/.d $(UPSTREAMFAIRDIR)/.d $(NGINXDIR)/.d
+$(BINDIR)/nginx: $(BINDIR)/.d $(DESTDIR)$(PREFIXDIR)/.d $(UPSTREAMFAIRDIR)/.d $(NGINXDIR)/.d
 	@echo "Building nginx..."
 	@cd $(NGINXDIR) && \
 		./configure \
@@ -61,7 +62,7 @@ $(BINDIR)/nginx: $(BINDIR)/.d $(PREFIXDIR)/.d $(UPSTREAMFAIRDIR)/.d $(NGINXDIR)/
 			--without-http_scgi_module \
 			--without-http_fastcgi_module \
 			--add-module=$(UPSTREAMFAIRDIR) \
-		&& make && make install 
+		&& make && make install
 	@echo "Cleaning up..."
 	@rm -rf $(PREFIXDIR)/conf $(PREFIXDIR)/logs
 
