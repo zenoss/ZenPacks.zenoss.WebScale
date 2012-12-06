@@ -124,7 +124,10 @@ execwithmsg () {
     MYMSG=$1
     shift
     is_verbose && printmsg "${MYMSG}"
-    "$@" > /dev/null 2>&1 && ok || fail
+    "$@" > /dev/null 2>&1
+    RETCODE=$?
+    [ ${RETCODE} -eq 0 ] && ok || fail
+    return ${RETCODE}
 }
 
 execwithmsg_verbose () {
@@ -133,7 +136,7 @@ execwithmsg_verbose () {
     is_verbose && printmsg "${MYMSG}"
     RESULT="$($@ 2>&1)"
     RETCODE=$?
-    [ ${RETCODE} ] && ok || fail
+    [ ${RETCODE} -eq 0 ] && ok || fail
     [ -n "${RESULT}" ] && echo "${RESULT}"
     return ${RETCODE}
 }
@@ -305,6 +308,8 @@ start () {
     EXITCODE=1
     for TARGET in ${TARGETS}; do
         if [ ${TARGET} == 'nginx' ]; then
+            # Check nginx config
+            inline_verify || return 1
             # Start nginx
             if $(nginxstatus > /dev/null 2>&1); then
                 log_terse "already running"
@@ -333,12 +338,28 @@ start () {
     return ${EXITCODE}
 }
 
+inline_verify () {
+    dontusenginx && return 0
+    # Check config
+    verify && return 0
+    # Config is bad, recheck with verbosity
+    if [ -z ${VERBOSE} ]; then
+        VERBOSE=1 verify
+    fi
+    echo
+    echo "Please repair your configuration by running \
+'zenwebserver configure' before executing load balancer commands."
+    return 1
+}
+
 stop () {
     log_terse stopping...
     TARGETS=$(targets "$@")
     EXITCODE=1
     for TARGET in ${TARGETS}; do
         if [ ${TARGET} == 'nginx' ]; then
+            # Check nginx config
+            inline_verify || return 1
             # Shut down nginx
             if $(nginxstatus > /dev/null 2>&1); then
                 execwithmsg "Stopping load balancer" ${NGINX} -s stop
@@ -402,6 +423,8 @@ restart () {
     TARGETS=$(targets "$@")
     for TARGET in ${TARGETS}; do
         if [ ${TARGET} == 'nginx' ]; then
+            # Check nginx config
+            inline_verify || return 1
             # Restart nginx
             if $(nginxstatus > /dev/null 2>&1); then
                 execwithmsg "Stopping load balancer" ${NGINX} -s stop
@@ -428,6 +451,8 @@ restart () {
 }
 
 reload () {
+    # Check nginx config
+    inline_verify || return 1
     dontusenginx || execwithmsg_verbose "Reloading load balancer config" ${NGINX} -s reload
 }
 
@@ -490,6 +515,10 @@ detached () {
 
 attach () {
     [ -z "$@" ] && quit "No specification of servers to attach. Examples: server2, 5"
+
+    # Check nginx config
+    inline_verify || return 1
+
     TARGETS=$(targets "$@")
     for TARGET in ${TARGETS}; do
         if [ "${TARGET}" == "nginx" ]; then
@@ -507,6 +536,10 @@ attach () {
 
 detach () {
     [ -z "$@" ] && quit "No specification of servers to detach. Examples: server2, 3"
+
+    # Check nginx config
+    inline_verify || return 1
+
     TARGETS=$(targets "$@")
     for TARGET in ${TARGETS}; do
         if [ "${TARGET}" == "nginx" ]; then
@@ -530,6 +563,23 @@ debug () {
     writeconfigfile ${SERVERNUM}
     foreground ${SERVERNUM}
     removeconf ${SERVERNUM}
+}
+
+verify () {
+    dontusenginx && return 0
+    printmsg "Verifying load balancer configuration" 
+
+    # For some reason, nginx -t wipes out the pidfile, so save it off
+    [ -f ${NGINXPIDFILE} ] && OLDPIDFILE=$(cat ${NGINXPIDFILE})
+
+    RESULT=$(${NGINX} -t 2>&1)
+    RETCODE=$?
+    [ ${RETCODE} -eq 0 ] && ok || (fail && is_verbose && printf "\n${RESULT}\n")
+
+    # Now put the pid file back
+    [ -n "${OLDPIDFILE}" ] && echo "${OLDPIDFILE}" > ${NGINXPIDFILE}
+
+    return ${RETCODE}
 }
 
 printstatus () {
@@ -574,16 +624,18 @@ nginxstatus () {
     STATUS=1
     if [ -f ${NGINXPIDFILE} ]; then
         PID=$(cat ${NGINXPIDFILE})
-        ps -p ${PID} > /dev/null 2>&1 && PROGSTATUS="Running (pid ${PID})"
-        # Any of the worker processes could be listening
-        for pid in ${PID} $(getchildpids ${PID}); do
-            PORT=$(portfrompid ${pid})
-            if [ -n "${PORT}" ]; then
-                STATUS=0
-                PORTSTATUS="Listening (port ${PORT})"
-                break
-            fi
-        done
+        if [ -n "${PID}" ]; then
+            ps -p ${PID} > /dev/null 2>&1 && PROGSTATUS="Running (pid ${PID})"
+            # Any of the worker processes could be listening
+            for pid in ${PID} $(getchildpids ${PID}); do
+                PORT=$(portfrompid ${pid})
+                if [ -n "${PORT}" ]; then
+                    STATUS=0
+                    PORTSTATUS="Listening (port ${PORT})"
+                    break
+                fi
+            done
+        fi
     fi
     [ ${STATUS} == 0 ] && up || down
     log_verbose ${PROGSTATUS}, ${PORTSTATUS}
@@ -617,7 +669,7 @@ configure () {
 }
 
 help () {
-    RELOAD=$(dontusenginx || echo "|reload|attach|detach")
+    RELOAD=$(dontusenginx || echo "|reload|attach|detach|verify")
     echo "Usage: $0 {run|start|stop|restart|status|deploy${RELOAD}|debug|configure|help} [-v] [targets]"
 }
 
@@ -682,6 +734,10 @@ parse () {
       configure)
         VERBOSE=1 # No terse mode necessary
         configure "$@"
+        ;;
+      verify)
+        VERBOSE=1 # No terse mode possible
+        verify "$@"
         ;;
       help)
         help
