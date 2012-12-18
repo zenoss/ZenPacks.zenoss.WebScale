@@ -8,4 +8,7 @@
     <adapter zcml:condition="installed ZenPacks.zenoss.DistributedCollector.interfaces"
              factory=".distributedcollector.WebScaleHubRenderUrlProvider"/>
 
+    <adapter for="Products.ZenModel.PerformanceConf.RenderURLUtilContext"
+             factory=".renderurlutil.NginxRenderURLUtil" 
+             provides="Products.ZenModel.interfaces.IRenderURLUtil"/>
 </configure>
