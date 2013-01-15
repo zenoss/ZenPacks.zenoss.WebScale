@@ -61,7 +61,7 @@ http {{
 
         include {customServerInclude};
 
-        location ~* \.(jpg|png|gif|jpeg|css|js|mp3|wav|swf|mov|doc|pdf|xls|ppt|docx|pptx|xlsx)$ {{
+        location ~* \.(jpg|png|gif|jpeg|css|js|mp3|wav|swf|mov|doc|pdf|xls|ppt|docx|pptx|xlsx|ico)$ {{
             proxy_pass http://zopectls;
             expires max;
             proxy_cache zenoss-cache;
