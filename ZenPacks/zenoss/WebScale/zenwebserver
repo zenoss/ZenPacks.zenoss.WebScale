@@ -569,15 +569,9 @@ verify () {
     dontusenginx && return 0
     printmsg "Verifying load balancer configuration" 
 
-    # For some reason, nginx -t wipes out the pidfile, so save it off
-    [ -f ${NGINXPIDFILE} ] && OLDPIDFILE=$(cat ${NGINXPIDFILE})
-
     RESULT=$(${NGINX} -t 2>&1)
     RETCODE=$?
     [ ${RETCODE} -eq 0 ] && ok || (fail && is_verbose && printf "\n${RESULT}\n")
-
-    # Now put the pid file back
-    [ -n "${OLDPIDFILE}" ] && echo "${OLDPIDFILE}" > ${NGINXPIDFILE}
 
     return ${RETCODE}
 }

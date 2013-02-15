@@ -9,8 +9,8 @@
 
 
 #==================================
-NGINXVERSION=1.0.10
-UPSTREAMFAIRVERSION=5f6a3b720e1cfbb9ef0258a543bf5d9f63915e20
+NGINXVERSION=1.2.7
+UPSTREAMFAIRVERSION=a18b4099fbd458111983200e098b6f0c8efed4bc
 #==================================
 
 HERE=$(PWD)
@@ -35,7 +35,7 @@ egg:
 
 $(NGINXDIR)/.d: $(BUILDDIR)/.d
 	@cd $(BUILDDIR) && tar xzf $(NGINX)
-	cd $(BUILDDIR) && patch -p 0 < $(LIBDIR)/nginx-1.0.10.all.patch
+	cd $(BUILDDIR) && patch -p 0 < $(LIBDIR)/nginx-$(NGINXVERSION).all.patch
 	@touch $(@)
 
 $(UPSTREAMFAIRDIR)/.d: $(BUILDDIR)/.d
