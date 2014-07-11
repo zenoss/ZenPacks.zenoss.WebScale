@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE map
+  PUBLIC "urn:pubid:zenoss.com:doctypes:dita:dtd:map" "map.dtd">
+<map>
+   <title>WebScale</title>
+   <topicref href="topics/WebScale.dita">
+      <topicref href="topics/prerequisites.dita"/>
+      <topicref href="topics/WebScale_ref-Installation.dita"/>
+      <topicref href="topics/WebScale_ref-Usage.dita">
+         <topicref href="topics/WebScale_ref-Usage_ref-Command.dita"/>
+         <topicref href="topics/WebScale_ref-Usage_ref-Option.dita"/>
+         <topicref href="topics/WebScale_ref-Usage_ref-Target.dita"/>
+         <topicref href="topics/WebScale_ref-Usage_ref-Examples.dita"/>
+         <topicref href="topics/WebScale_ref-Usage_ref-Configuring-the-Load-Balancer.dita"/>
+      </topicref>
+   </topicref>
+</map>

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference
+  PUBLIC "urn:pubid:zenoss.com:doctypes:dita:dtd:reference" "reference.dtd">
+<reference id="d61e515"><title>Configuring the Load Balancer</title><refbody><section><p>The load balancer configuration file
+      (<filepath>nginx.conf</filepath>) is generated from the template in
+      <filepath>$ZENHOME/etc/nginx.conf.template</filepath>. This template
+      includes a number of variables that can be substituted by providing
+      values in the <filepath>zenwebserver.conf</filepath> file.</p><p>Custom configurations also can be included in the http and server
+      blocks of the nginx configuration. By default, configuration files in
+      <filepath>$ZENHOME/etc</filepath> are included if they match one of
+      these patterns:</p><ul>
+        <li>
+          <p><filepath>nginx-custom-http-*.conf</filepath></p>
+        </li>
+
+        <li>
+          <p><filepath>nginx-custom-server-*.conf</filepath></p>
+        </li>
+      </ul><p>Values that can be substituted are:</p><ul>
+        <li>
+          <p>Number of worker_processes for nginx to use</p>
+
+          <codeblock outputclass="programlisting">#worker_processes 4</codeblock>
+        </li>
+
+        <li>
+          <p>Paths for nginx var directories</p>
+
+          <codeblock outputclass="programlisting">#proxy_cache_path $ZENHOME/var/nginx/cache
+#proxy_temp_path $ZENHOME/var/nginx/tmp/proxy
+#client_body_temp_path $ZENHOME/var/nginx/tmp/client_body</codeblock>
+        </li>
+
+        <li>
+          <p>Custom includes, which include any configuration files that
+          match the pattern.</p>
+
+          <ul>
+            <li>
+              <p>customHttpInclude allows configurations to be added to the
+              http block in the nginx configuration:</p>
+
+              <codeblock outputclass="programlisting">#customHttpInclude $ZENHOME/etc/nginx-custom-http-*.conf</codeblock>
+            </li>
+
+            <li>
+              <p>customServerInclude allows configurations to be added to
+              the server block in the nginx configuration:</p>
+
+              <codeblock outputclass="programlisting">#customServerInclude $ZENHOME/etc/nginx-custom-server-*.conf</codeblock>
+            </li>
+          </ul>
+        </li>
+
+        <li>
+          <p>Default error log level</p>
+
+          <codeblock outputclass="programlisting">#error_log_level warn</codeblock>
+        </li>
+      </ul></section></refbody></reference>

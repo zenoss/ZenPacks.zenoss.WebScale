@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference
+  PUBLIC "urn:pubid:zenoss.com:doctypes:dita:dtd:reference" "reference.dtd">
+<reference id="d61e349"><title>Target</title><refbody><section><p>Several commands accept one or more targets against which the
+      command should be executed. If you do not specify a target, the command
+      runs the action against all targets.</p><ul>
+        <li>
+          <p><b>loadbalancer</b> - Load balancer.
+          Alternatively, you can specify:</p>
+
+          <codeblock outputclass="programlisting">ngnix</codeblock>
+        </li>
+
+        <li>
+          <p><b>servers</b> - All Zope
+          servers.</p>
+        </li>
+
+        <li>
+          <p><b>server</b><i>n</i>
+          - Specific Zope server, where <i>n</i> is the server
+          number. Alternatively, you can specify just a server number or
+          numbers. For example, both of the following commands stop Zope
+          servers 2 and 3:</p>
+
+          <codeblock outputclass="programlisting">zenwebserver stop server2 server3</codeblock>
+
+          <codeblock outputclass="programlisting">zenwebserver stop 2 3</codeblock>
+        </li>
+      </ul></section></refbody></reference>

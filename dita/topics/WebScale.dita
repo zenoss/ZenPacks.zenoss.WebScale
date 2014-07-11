@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "urn:pubid:zenoss.com:doctypes:dita:dtd:reference" "reference.dtd">
+<reference id="referenceid">
+  <title>(WebScale) WebScale</title>
+  <shortdesc>The <zenpack>ZenPacks.zenoss.WebScale</zenpack> ZenPack adds the <cmdname>zenwebserver</cmdname> daemon,
+    to deploy and manage multiple Zope instances.</shortdesc>
+  <refbody>
+    <section>
+      <p>With this ZenPack, <ph conkeyref="names/platform"/> replaces <cmdname>zopectl</cmdname> with the <cmdname>nginx</cmdname> load balancer.</p>
+    </section>
+  </refbody>
+</reference>

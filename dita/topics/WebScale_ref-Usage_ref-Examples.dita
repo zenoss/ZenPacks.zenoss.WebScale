@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference
+  PUBLIC "urn:pubid:zenoss.com:doctypes:dita:dtd:reference" "reference.dtd">
+<reference id="d61e400"><title>Examples</title><refbody><section><title>Status</title><p><filepath>zenwebserver status</filepath>
+      [<filepath>-v</filepath>]</p></section><section><title>Start, Stop, and Restart</title><p><filepath>zenwebserver</filepath>
+      {<filepath>stop</filepath>|<filepath>start</filepath>|<filepath>restart</filepath>}
+      [<filepath>-v</filepath>] [<i>Targets</i>]</p></section><section><title>Manage the Number of Zope Servers</title><p><filepath>zenwebserver deploy</filepath>
+      {<filepath>n</filepath>|<filepath>-n</filepath>|<filepath>+n</filepath>}</p><p><b>Examples:</b><ul>
+          <li>
+            <p><filepath>zenwebserver deploy 5</filepath> # Ensures that
+            exactly 5 Zope servers are running.</p>
+          </li>
+
+          <li>
+            <p><filepath>zenwebserver deploy +1</filepath> # Deploys one
+            additional Zope server, regardless of the current number.</p>
+          </li>
+
+          <li>
+            <p><filepath>zenwebserver deploy -3</filepath> # Destroys up to
+            3 Zope servers (as long as the minimum of 1 is maintained).</p>
+          </li>
+        </ul></p></section><section><title>Manage the Server Pool</title><p><filepath>zenwebserver</filepath>
+      {<filepath>attach</filepath>|<filepath>detach</filepath>}
+      <i>Targets</i></p><p>Detaching a target is useful when you want to isolate a Zope
+      server and access it via its direct port to ensure that your requests
+      are the only ones being handled by that server.</p></section><section><title>Start an Independent Instance</title><p><filepath>zenwebserver debug</filepath></p></section></refbody></reference>

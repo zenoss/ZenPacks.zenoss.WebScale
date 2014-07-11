@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference
+  PUBLIC "urn:pubid:zenoss.com:doctypes:dita:dtd:reference" "reference.dtd">
+<reference id="d61e332"><title>Option</title><refbody><section><ul>
+        <li>
+          <p><b>-v</b> - Prints more information,
+          including the status of each Zope server, the ports at which the
+          processes are listening, and the servers currently detached from the
+          server pool.</p>
+        </li>
+      </ul></section></refbody></reference>
