@@ -12,11 +12,11 @@
 # These variables are overwritten by Zenoss when the ZenPack is exported
 # or saved.  Do not modify them directly here.
 NAME = 'ZenPacks.zenoss.WebScale'
-VERSION = '1.2.1'
+VERSION = '1.2.4'
 AUTHOR = 'Zenoss'
 LICENSE = ''
 NAMESPACE_PACKAGES = ['ZenPacks', 'ZenPacks.zenoss']
-INSTALL_REQUIRES = ['Zenoss >= 4.1.1']
+INSTALL_REQUIRES = []
 COMPAT_ZENOSS_VERS = '>=4.1.1'
 PREV_ZENPACK_NAME = 'WebScale'
 # STOP_REPLACEMENTS

@@ -1,0 +1,11 @@
+--- nginx-1.4.4/auto/install.orig	2013-02-14 09:41:00.811589861 -0600
++++ nginx-1.4.4/auto/install	2013-02-14 09:41:03.411557174 -0600
+@@ -105,7 +105,7 @@
+ 	test ! -f '\$(DESTDIR)$NGX_SBIN_PATH' \
+ 		|| mv '\$(DESTDIR)$NGX_SBIN_PATH' \
+ 			'\$(DESTDIR)$NGX_SBIN_PATH.old'
+-	cp $NGX_OBJS/nginx '\$(DESTDIR)$NGX_SBIN_PATH'
++	cp $NGX_OBJS/nginx '$NGX_SBIN_PATH'
+ 
+ 	test -d '\$(DESTDIR)$NGX_CONF_PREFIX' \
+ 		|| mkdir -p '\$(DESTDIR)$NGX_CONF_PREFIX'

@@ -9,8 +9,7 @@
 
 
 #==================================
-NGINXVERSION=1.2.7
-UPSTREAMFAIRVERSION=a18b4099fbd458111983200e098b6f0c8efed4bc
+NGINXVERSION=1.4.4
 #==================================
 
 HERE=$(PWD)
@@ -21,8 +20,9 @@ PREFIXDIR=$(ZENHOME)
 BINDIR=$(TARGETDIR)/bin
 NGINX=$(LIBDIR)/nginx-$(NGINXVERSION).tar.gz
 NGINXDIR=$(BUILDDIR)/nginx-$(NGINXVERSION)
-UPSTREAMFAIR=$(LIBDIR)/nginx-upstream-fair-$(UPSTREAMFAIRVERSION).tar.gz
-UPSTREAMFAIRDIR=$(BUILDDIR)/nginx-upstream-fair-$(UPSTREAMFAIRVERSION)
+#nginx-upstream-fair version a18b4099fbd458111983200e098b6f0c8efed4bc + our custom changes
+UPSTREAMFAIR=$(LIBDIR)/nginx-upstream-fair.tar.gz
+UPSTREAMFAIRDIR=$(BUILDDIR)/nginx-upstream-fair
 
 default: egg
 
