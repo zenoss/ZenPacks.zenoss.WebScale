@@ -69,7 +69,7 @@ class ZenPack(ZenPackBase):
         """
         Make specified file executable.
         """
-        fname = self.path(*path)
+        fname = self.path(*path)        
         os.chmod(fname, 0755)
 
     def _symlink(self, fro, to):

@@ -145,7 +145,7 @@ user zenoss zenoss;
         ssl_certificate {SSL_CERT};
         ssl_certificate_key {SSL_KEY};
         # Configure SSL to address CVE-2011-3389
-        ssl_protocols SSLv3 TLSv1.2 TLSv1.1;
+        ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
         ssl_ciphers RC4:HIGH:!aNULL:!MD5;
         ssl_prefer_server_ciphers on;
 """.format(**substitutions)
